@@ -45,6 +45,21 @@ def wait_for_all_uploads(driver, max_wait=3600):
         time.sleep(5)  # Espera breve antes de volver a verificar
 
 
+# Función para subir un lote de archivos
+def upload_file_batch(driver, files, local_root, folder):
+    for file in files:
+        file_path = os.path.join(local_root, folder, file)
+        print(f"Subiendo archivo: {file} a la carpeta: {folder}")
+
+        file_input = WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, "input[type='file']"))
+        )
+        file_input.send_keys(file_path)
+
+    # Esperar a que se completen todas las subidas del lote
+    wait_for_all_uploads(driver)
+
+
 # Configuración del WebDriver
 service = Service("C:/Users/josev/Escritorio/chromedriver-win64/chromedriver.exe")
 driver = webdriver.Chrome(service=service)
@@ -67,23 +82,20 @@ try:
     folio_hdd = WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.LINK_TEXT, "ARQ-01")))
     folio_hdd.click()
 
-    # Subida de archivos
+    # Subida de archivos en lotes
     local_root = "C:/Users/josev/Documentos/PRC-02/Tramo 7/Prospección/2024"
     directory_structure = get_directory_structure(local_root)
     print("Estructura de carpetas detectada:", directory_structure)
 
+    # Configuración del tamaño del lote
+    files_per_batch = 10  # Número de archivos por lote, configurable
+
     for folder, files in directory_structure.items():
-        for file in files:
-            file_path = os.path.join(local_root, folder, file)
-            print(f"Subiendo archivo: {file} a la carpeta: {folder}")
-
-            file_input = WebDriverWait(driver, 10).until(
-                EC.presence_of_element_located((By.CSS_SELECTOR, "input[type='file']"))
-            )
-            file_input.send_keys(file_path)
-
-    # Esperar a que todas las subidas se completen
-    wait_for_all_uploads(driver)
+        # Dividir los archivos en lotes
+        for i in range(0, len(files), files_per_batch):
+            file_batch = files[i:i + files_per_batch]
+            print(f"Subiendo lote de archivos: {file_batch}")
+            upload_file_batch(driver, file_batch, local_root, folder)
 
     print("Carga de carpetas y archivos completada")
 
