@@ -58,7 +58,7 @@ def upload_file(driver, file_path):
 
 
 # Función para esperar a que todas las subidas se completen
-def wait_for_all_uploads(driver, max_wait=3600):
+def wait_for_all_uploads(driver, max_wait=18000):
     print("Esperando a que se completen todas las subidas...")
     start_time = time.time()
 
@@ -81,7 +81,7 @@ def wait_for_all_uploads(driver, max_wait=3600):
             raise TimeoutError("Se agotó el tiempo de espera. Algunos archivos no se subieron correctamente.")
 
         time.sleep(5)
-        
+
 # Función para replicar la estructura de carpetas de manera jerárquica
 def replicate_structure(driver, local_path):
     for root, dirs, files in os.walk(local_path):
