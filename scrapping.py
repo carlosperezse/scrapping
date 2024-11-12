@@ -7,13 +7,54 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
 
-# Función para recorrer la estructura de carpetas y archivos
-def get_directory_structure(rootdir):
-    directory_structure = {}
-    for root, dirs, files in os.walk(rootdir):
-        relative_path = os.path.relpath(root, rootdir)
-        directory_structure[relative_path] = files
-    return directory_structure
+# Función para esperar confirmación automática
+def handle_confirmation(driver):
+    try:
+        alert = WebDriverWait(driver, 2).until(EC.alert_is_present())
+        alert.accept()  # Automáticamente selecciona "Sí"
+        print("Confirmación aceptada automáticamente.")
+    except:
+        pass  # Si no hay confirmación, continuar normalmente
+
+
+# Función para crear una carpeta remota
+def create_remote_folder(driver, folder_name):
+    try:
+        print(f"Creando carpeta: {folder_name}")
+        folder_input = WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.ID, "nombre_carpeta"))
+        )
+        folder_input.clear()
+        folder_input.send_keys(folder_name)
+
+        create_button = driver.find_element(By.CSS_SELECTOR, "a.btn-success")
+        create_button.click()
+
+        handle_confirmation(driver)
+
+        # Esperar a que la carpeta sea creada
+        WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.LINK_TEXT, folder_name))
+        )
+        print(f"Carpeta '{folder_name}' creada exitosamente.")
+    except Exception as e:
+        print(f"Error al crear la carpeta '{folder_name}': {e}")
+
+
+# Función para subir un archivo a la carpeta actual
+def upload_file(driver, file_path):
+    try:
+        print(f"Subiendo archivo: {file_path}")
+        file_input = WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, "input[type='file']"))
+        )
+        file_input.send_keys(file_path)
+
+        # Esperar a que la subida se complete
+        wait_for_all_uploads(driver)
+        print(f"Archivo '{file_path}' subido exitosamente.")
+    except Exception as e:
+        print(f"Error al subir el archivo '{file_path}': {e}")
 
 
 # Función para esperar a que todas las subidas se completen
@@ -22,19 +63,16 @@ def wait_for_all_uploads(driver, max_wait=3600):
     start_time = time.time()
 
     while True:
-        # Verificar si todavía hay archivos pendientes
         pending_uploads = driver.find_elements(By.CSS_SELECTOR, ".dz-preview:not(.dz-success)")
         if not pending_uploads:
             print("Todas las subidas se han completado.")
             return True
 
-        # Mostrar los archivos que siguen pendientes
         for pending in pending_uploads:
             file_name = pending.find_element(By.CSS_SELECTOR, ".dz-filename span").text
             progress = pending.find_element(By.CSS_SELECTOR, ".dz-progress span").get_attribute("style")
             print(f"Archivo pendiente: {file_name}, progreso: {progress}")
 
-        # Salir si el tiempo excede el límite
         if time.time() - start_time > max_wait:
             print("Archivos que no se subieron:")
             for pending in pending_uploads:
@@ -42,22 +80,32 @@ def wait_for_all_uploads(driver, max_wait=3600):
                 print(f"  - {file_name}")
             raise TimeoutError("Se agotó el tiempo de espera. Algunos archivos no se subieron correctamente.")
 
-        time.sleep(5)  # Espera breve antes de volver a verificar
+        time.sleep(5)
 
 
-# Función para subir un lote de archivos
-def upload_file_batch(driver, files, local_root, folder):
-    for file in files:
-        file_path = os.path.join(local_root, folder, file)
-        print(f"Subiendo archivo: {file} a la carpeta: {folder}")
+# Función principal para replicar estructura
+def replicate_structure(driver, local_path):
+    for root, dirs, files in os.walk(local_path):
+        relative_path = os.path.relpath(root, local_path)
+        if relative_path == ".":
+            continue  # Saltar la raíz (carpeta base)
 
-        file_input = WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.CSS_SELECTOR, "input[type='file']"))
+        # Crear carpeta remota
+        create_remote_folder(driver, relative_path)
+
+        # Acceder a la carpeta creada
+        folder_link = WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.LINK_TEXT, relative_path))
         )
-        file_input.send_keys(file_path)
+        folder_link.click()
 
-    # Esperar a que se completen todas las subidas del lote
-    wait_for_all_uploads(driver)
+        # Subir archivos en la carpeta
+        for file in files:
+            file_path = os.path.join(root, file)
+            upload_file(driver, file_path)
+
+        # Volver al nivel anterior
+        driver.back()
 
 
 # Configuración del WebDriver
@@ -82,22 +130,11 @@ try:
     folio_hdd = WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.LINK_TEXT, "ARQ-01")))
     folio_hdd.click()
 
-    # Subida de archivos en lotes
-    local_root = "C:/Users/josev/Documentos/PRC-02/Tramo 7/Prospección/2024"
-    directory_structure = get_directory_structure(local_root)
-    print("Estructura de carpetas detectada:", directory_structure)
+    # Replicar estructura local
+    local_path = "C:/Users/josev/Documentos/PRC-02/Tramo 7/Prospección/2024"
+    replicate_structure(driver, local_path)
 
-    # Configuración del tamaño del lote
-    files_per_batch = 10  # Número de archivos por lote, configurable
-
-    for folder, files in directory_structure.items():
-        # Dividir los archivos en lotes
-        for i in range(0, len(files), files_per_batch):
-            file_batch = files[i:i + files_per_batch]
-            print(f"Subiendo lote de archivos: {file_batch}")
-            upload_file_batch(driver, file_batch, local_root, folder)
-
-    print("Carga de carpetas y archivos completada")
+    print("Estructura replicada exitosamente")
 
 finally:
     driver.quit()
