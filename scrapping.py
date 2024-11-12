@@ -81,32 +81,39 @@ def wait_for_all_uploads(driver, max_wait=3600):
             raise TimeoutError("Se agotó el tiempo de espera. Algunos archivos no se subieron correctamente.")
 
         time.sleep(5)
-
-
-# Función principal para replicar estructura
+        
+# Función para replicar la estructura de carpetas de manera jerárquica
 def replicate_structure(driver, local_path):
     for root, dirs, files in os.walk(local_path):
-        relative_path = os.path.relpath(root, local_path)
+        # Obtener la ruta relativa para replicar en el sistema remoto
+        relative_path = os.path.relpath(root, local_path).replace("\\", "/")
         if relative_path == ".":
-            continue  # Saltar la raíz (carpeta base)
+            continue  # Omitir la carpeta raíz
 
-        # Crear carpeta remota
-        create_remote_folder(driver, relative_path)
+        # Dividir la ruta relativa para crear carpetas de manera jerárquica
+        path_parts = relative_path.split("/")
+        for i, part in enumerate(path_parts):
+            sub_path = "/".join(path_parts[:i + 1])
+            try:
+                # Crear la carpeta si no existe
+                create_remote_folder(driver, part)
 
-        # Acceder a la carpeta creada
-        folder_link = WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.LINK_TEXT, relative_path))
-        )
-        folder_link.click()
-
-        # Subir archivos en la carpeta
+                # Navegar a la carpeta creada
+                folder_link = WebDriverWait(driver, 10).until(
+                    EC.presence_of_element_located((By.LINK_TEXT, part))
+                )
+                folder_link.click()
+            except Exception as e:
+                print(f"La carpeta '{sub_path}' ya existe o no pudo ser creada: {e}")
+        
+        # Subir archivos a la carpeta correspondiente
         for file in files:
             file_path = os.path.join(root, file)
             upload_file(driver, file_path)
 
-        # Volver al nivel anterior
-        driver.back()
-
+        # Volver al nivel anterior para continuar con otras carpetas
+        for _ in range(len(path_parts)):
+            driver.back()
 
 # Configuración del WebDriver
 service = Service("C:/Users/josev/Escritorio/chromedriver-win64/chromedriver.exe")
@@ -131,7 +138,7 @@ try:
     folio_hdd.click()
 
     # Replicar estructura local
-    local_path = "C:/Users/josev/Documentos/PRC-02/Tramo 7/Prospección/2024"
+    local_path = "C:/Users/josev/Documentos/PRC-02/Tramo 7/Prospección/2024/test"
     replicate_structure(driver, local_path)
 
     print("Estructura replicada exitosamente")
