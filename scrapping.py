@@ -138,7 +138,7 @@ try:
     folio_hdd.click()
 
     # Replicar estructura local
-    local_path = "C:/Users/josev/Documentos/PRC-02/Tramo 7/Prospección/2024/test"
+    local_path = "C:/Users/josev/Documentos/PRC-02/Tramo 7/Prospección/2022"
     replicate_structure(driver, local_path)
 
     print("Estructura replicada exitosamente")
