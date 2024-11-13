@@ -47,9 +47,39 @@ def create_remote_folder(driver, folder_name):
         print(f"Error al crear la carpeta '{folder_name}': {e}")
 
 
+def verify_file(driver, file_path):
+    try:
+        filename = os.path.basename(file_path)
+        print(f'Filename: {filename}')
+
+        possible_filenames = [filename, f"*{filename}"]
+        
+        for name in possible_filenames:
+            try:
+                # file = WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.LINK_TEXT, name)))
+                file = driver.find_elements(By.LINK_TEXT, name)
+
+                if (len(file) > 0):
+                    print(f'Encontrado: {file}')
+                    return True
+            except:
+                continue
+
+        print(f'No se encontró ninguna variante del archivo {filename}')
+        return False
+
+    except Exception as e:
+        print(f'Error al encontrar el link: {e}')
+        return False
+
+
 # Función para subir un archivo a la carpeta actual
 def upload_file(driver, file_path):
     try:
+        exist_file = verify_file(driver, file_path)
+        if exist_file: 
+            return
+
         print(f"Subiendo archivo: {file_path}")
         file_input = WebDriverWait(driver, 10).until(
             EC.presence_of_element_located((By.CSS_SELECTOR, "input[type='file']"))
