@@ -6,6 +6,12 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
+DRIVER_ROOT = 'D:/Downloads/chromedriver-win64/chromedriver.exe'
+CORREO = 'davidiqm@gmail.com'
+CONTRASENIA = 'DSA22947'
+COORDINACION_FOLDER = 'PROCESAMIENTO'
+FOLIO = 'PRC-02'
+LOCAL_ROOT = 'E:/PRC-02'
 
 # Función para esperar confirmación automática
 def handle_confirmation(driver):
@@ -116,30 +122,30 @@ def replicate_structure(driver, local_path):
             driver.back()
 
 # Configuración del WebDriver
-service = Service("C:/Users/josev/Escritorio/chromedriver-win64/chromedriver.exe")
+service = Service(DRIVER_ROOT)
 driver = webdriver.Chrome(service=service)
 
 try:
     # Inicio de sesión
     driver.get("https://repositoriot.inah.gob.mx/arrastrar/index.php")
     WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.NAME, "correo")))
-    driver.find_element(By.NAME, "correo").send_keys("al049738@uacam.mx")
-    driver.find_element(By.NAME, "contrasenia").send_keys("DSA22093")
+    driver.find_element(By.NAME, "correo").send_keys(CORREO)
+    driver.find_element(By.NAME, "contrasenia").send_keys(CONTRASENIA)
     driver.find_element(By.NAME, "iniciar").click()
 
     WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.CLASS_NAME, "file_upload")))
     print("Inicio de sesión exitoso")
 
     # Navegar a la carpeta de destino
-    folder_root = WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.LINK_TEXT, "ARQUITECTURA")))
+    folder_root = WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.LINK_TEXT, COORDINACION_FOLDER)))
     folder_root.click()
 
-    folio_hdd = WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.LINK_TEXT, "ARQ-01")))
+    folio_hdd = WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.LINK_TEXT, FOLIO)))
     folio_hdd.click()
 
     # Replicar estructura local
     local_path = "C:/Users/josev/Documentos/PRC-02/Tramo 7/Prospección/2022"
-    replicate_structure(driver, local_path)
+    replicate_structure(driver, LOCAL_ROOT)
 
     print("Estructura replicada exitosamente")
 
