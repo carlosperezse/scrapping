@@ -1,10 +1,12 @@
 import os
 import time
+import sys
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.common.action_chains import ActionChains
 
 DRIVER_ROOT = 'C:/Users/josev/Escritorio/chromedriver-win64/chromedriver.exe'
 CORREO = 'al049738@uacam.mx'
@@ -13,6 +15,7 @@ COORDINACION_FOLDER = 'PROCESAMIENTO'
 FOLIO = 'PRC-03'
 LOCAL_ROOT = 'E:/PRC-03'
 
+
 def handle_confirmation(driver):
     try:
         alert = WebDriverWait(driver, 2).until(EC.alert_is_present())
@@ -20,6 +23,37 @@ def handle_confirmation(driver):
         print("Confirmación aceptada automáticamente.")
     except:
         pass
+
+
+def ensure_folder_suffix(url):
+    """
+    Asegura que la URL termina con /* para indicar que es la carpeta actual.
+    """
+    if not url.endswith("/*"):
+        return f"{url}/*"
+    return url
+
+
+def scroll_to_element(driver, element):
+    """
+    Desplaza la página hasta que el elemento sea visible.
+    """
+    try:
+        driver.execute_script("arguments[0].scrollIntoView(true);", element)
+        time.sleep(1)
+    except Exception as e:
+        print(f"Error al desplazar hacia el elemento: {e}")
+
+
+def click_with_js(driver, element):
+    """
+    Realiza clic en un elemento utilizando JavaScript.
+    """
+    try:
+        driver.execute_script("arguments[0].click();", element)
+    except Exception as e:
+        print(f"Error al hacer clic en el elemento con JavaScript: {e}")
+
 
 def create_remote_folder(driver, folder_name):
     try:
@@ -31,7 +65,12 @@ def create_remote_folder(driver, folder_name):
         folder_input.send_keys(folder_name)
 
         create_button = driver.find_element(By.CSS_SELECTOR, "a.btn-success")
-        create_button.click()
+
+        # Asegúrate de que el botón sea visible
+        scroll_to_element(driver, create_button)
+
+        # Intentar hacer clic con JavaScript si es necesario
+        click_with_js(driver, create_button)
 
         handle_confirmation(driver)
 
@@ -41,6 +80,9 @@ def create_remote_folder(driver, folder_name):
         print(f"Carpeta '{folder_name}' creada exitosamente.")
     except Exception as e:
         print(f"Error al crear la carpeta '{folder_name}': {e}")
+        print("Finalizando el programa debido a un error crítico.")
+        sys.exit(1)
+
 
 def verify_file(driver, file_path):
     try:
@@ -48,11 +90,11 @@ def verify_file(driver, file_path):
         print(f'Filename: {filename}')
 
         possible_filenames = [filename, f"*{filename}"]
-        
+
         for name in possible_filenames:
             try:
                 file = driver.find_elements(By.LINK_TEXT, name)
-                if (len(file) > 0):
+                if len(file) > 0:
                     print(f'Encontrado: {file}')
                     return True
             except:
@@ -65,10 +107,11 @@ def verify_file(driver, file_path):
         print(f'Error al encontrar el link: {e}')
         return False
 
+
 def upload_file(driver, file_path):
     try:
         exist_file = verify_file(driver, file_path)
-        if exist_file: 
+        if exist_file:
             return
 
         print(f"Subiendo archivo: {file_path}")
@@ -81,6 +124,7 @@ def upload_file(driver, file_path):
         print(f"Archivo '{file_path}' subido exitosamente.")
     except Exception as e:
         print(f"Error al subir el archivo '{file_path}': {e}")
+
 
 def wait_for_all_uploads(driver, max_wait=18000):
     print("Esperando a que se completen todas las subidas...")
@@ -106,6 +150,7 @@ def wait_for_all_uploads(driver, max_wait=18000):
 
         time.sleep(5)
 
+
 def replicate_structure(driver, local_path):
     # Navegar primero al directorio FOLIO
     folder_root = WebDriverWait(driver, 10).until(
@@ -130,17 +175,20 @@ def replicate_structure(driver, local_path):
         # Crear y navegar la estructura de carpetas
         path_parts = relative_path.split("/")
         current_level = 0
-        
+
         for part in path_parts:
             try:
                 create_remote_folder(driver, part)
                 folder_link = WebDriverWait(driver, 10).until(
                     EC.presence_of_element_located((By.LINK_TEXT, part))
                 )
-                folder_link.click()
+                folder_url = folder_link.get_attribute("href")
+                folder_url_with_suffix = ensure_folder_suffix(folder_url)
+                driver.get(folder_url_with_suffix)
                 current_level += 1
             except Exception as e:
                 print(f"Error al navegar a la carpeta '{part}': {e}")
+                sys.exit(1)
 
         # Subir archivos en la carpeta actual
         for file in files:
@@ -150,6 +198,7 @@ def replicate_structure(driver, local_path):
         # Regresar al directorio del FOLIO
         for _ in range(current_level):
             driver.back()
+
 
 # Configuración del WebDriver
 service = Service(DRIVER_ROOT)
