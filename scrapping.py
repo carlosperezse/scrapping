@@ -16,6 +16,18 @@ FOLIO = 'PRC-03'
 LOCAL_ROOT = 'E:/PRC-03'
 
 
+def is_hidden(file_path):
+    """
+    Verifica si un archivo o carpeta es oculto.
+    """
+    if os.name == 'nt':  # Windows
+        import ctypes
+        attrs = ctypes.windll.kernel32.GetFileAttributesW(file_path)
+        return attrs & 2  # FILE_ATTRIBUTE_HIDDEN
+    else:  # Unix/Linux/Mac
+        return os.path.basename(file_path).startswith(".")
+
+
 def handle_confirmation(driver):
     try:
         alert = WebDriverWait(driver, 2).until(EC.alert_is_present())
@@ -110,6 +122,10 @@ def verify_file(driver, file_path):
 
 def upload_file(driver, file_path):
     try:
+        if is_hidden(file_path):  # Ignorar archivos ocultos
+            print(f"Ignorando archivo oculto: {file_path}")
+            return
+
         exist_file = verify_file(driver, file_path)
         if exist_file:
             return
@@ -164,6 +180,8 @@ def replicate_structure(driver, local_path):
     folio_folder.click()
 
     for root, dirs, files in os.walk(local_path):
+        # Filtrar carpetas ocultas
+        dirs[:] = [d for d in dirs if not is_hidden(os.path.join(root, d))]
         relative_path = os.path.relpath(root, local_path).replace("\\", "/")
         if relative_path == ".":
             # Para archivos en la raíz, subirlos directamente al FOLIO
