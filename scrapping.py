@@ -8,13 +8,13 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.action_chains import ActionChains
 
-DRIVER_ROOT = 'C:/Users/josev/Escritorio/chromedriver-win64/chromedriver.exe'
+DRIVER_ROOT = 'c:/Users/jose5/OneDrive/Escritorio/chromedriver-win64/chromedriver.exe'
 CORREO = 'al049738@uacam.mx'
 CONTRASENIA = 'DSA22093'
-COORDINACION_FOLDER = 'PROCESAMIENTO'
-FOLIO = 'PRC-03'
-LOCAL_ROOT = 'E:/PRC-03'
-
+COORDINACION_FOLDER = 'SEGUIMIENTO DE DATOS DE EXCAVACIÓN'
+FOLIO = 'EXC-01'
+CURRENT_HDD = 'Alternos'
+LOCAL_ROOT = 'E:/EXC-01/Alternos'
 
 def is_hidden(file_path):
     """
@@ -178,6 +178,11 @@ def replicate_structure(driver, local_path):
         EC.presence_of_element_located((By.LINK_TEXT, FOLIO))
     )
     folio_folder.click()
+
+    current_hdd_folder = WebDriverWait(driver, 10).until(
+        EC.presence_of_element_located((By.LINK_TEXT, CURRENT_HDD))
+    )
+    current_hdd_folder.click()
 
     for root, dirs, files in os.walk(local_path):
         # Filtrar carpetas ocultas
