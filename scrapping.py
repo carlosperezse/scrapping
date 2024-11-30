@@ -2,6 +2,7 @@ import os
 import time
 import sys
 import json
+from pathlib import Path
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.service import Service
@@ -26,8 +27,9 @@ CORREO = 'cipp98@gmail.com'
 CONTRASENIA = 'DSA22359'
 COORDINACION_FOLDER = 'TOPOGRAFÍA'
 FOLIO = 'TPG-01'
-CURRENT_HDD = 'Alternos' # Dejar vacío si no aplica
-LOCAL_ROOT = 'C:/Users/ADMIN/Documents/PRC-15'
+CURRENT_HDD = 'NS1' # Dejar vacío si no aplica
+#LOCAL_ROOT = 'C:/Users/ADMIN/Documents/PRC-15'
+LOCAL_ROOT = 'C:/Users/ADMIN/Documents/CARPETABOT'
 LIST_PATH = 'C:/Users/ADMIN/Desktop/jsonresult_list.json' # Path del archivo con la lista de rutas.
 
 def is_hidden(file_path):
@@ -243,6 +245,20 @@ def replicate_structure(driver, local_path):
         for _ in range(current_level):
             driver.back()
 
+def navigate_to_element(driver, link_text, timeout=10):
+    """
+    Espera y navega hasta un elemento con el texto dado.
+    """
+    try:
+        element = WebDriverWait(driver, timeout).until(
+            EC.presence_of_element_located((By.LINK_TEXT, link_text))
+        )
+        element.click()
+    except TimeoutException:
+        print(f"Elemento con texto '{link_text}' no encontrado.")
+        return False
+    return True
+
 # ---- USO DE LISTA -----
 
 def save_structure(driver):
@@ -262,16 +278,17 @@ def save_structure(driver):
         return
     
     #La carpeta raíz donde se trabajará el ingreso de los archivos y directorios.
-    root = driver.current_url
-
-    print(root)
+    url = driver.current_url
+    root_path = url.rstrip("/*")
+    print(root_path)
 
     try:
         # Llama a la función cargar_json_array
         list = load_json_array(LIST_PATH)
         
         print("Archivo cargado correctamente. Contenido:")
-        process_list(list)
+        
+        process_list(root_path,list)
         
         # Continuar con el flujo del programa
         # procesar_lista(lista)
@@ -322,28 +339,43 @@ def load_json_array(ruta_archivo):
     
     return contenido
 
-def process_list(list):
+def process_list(server_root,list):
     """
     Procesa la lista obtenida del archivo JSON.
     """
     print("Procesando la lista...")
     for path in list:
-        print(f"Elemento: {path}")
 
-def navigate_to_element(driver, link_text, timeout=10):
-    """
-    Espera y navega hasta un elemento con el texto dado.
-    """
-    try:
-        element = WebDriverWait(driver, timeout).until(
-            EC.presence_of_element_located((By.LINK_TEXT, link_text))
-        )
-        element.click()
-    except TimeoutException:
-        print(f"Elemento con texto '{link_text}' no encontrado.")
-        return False
-    return True
+        clean_path = path.replace("\\","/")
+        server_path = server_root + get_parent_root(clean_path) + '/*'
+        local_path = LOCAL_ROOT+clean_path
+        print(f"Elemento: {server_path}")
 
+        #Verificamos que el archivo exista en local
+        path = Path(local_path)
+
+        if path.exists():
+            #Navegamos hasta la carpeta padre (independientemente de que exista o no).
+            driver.get(server_path)
+            if path.is_file():
+                upload_file(driver, local_path)  # Indica que es un archivo
+            elif path.is_dir():
+                folder_name = local_path.split("/")[-1]
+                create_remote_folder(driver, folder_name) # Indica que es una carpeta
+        else:
+            print('EN LOCAL NO SE ENCONTRÓ EL ARCHIVO: '+local_path)
+
+def get_parent_root(path):
+    """
+    Modifica los path para que tengan el formato necesario.
+    """
+    partes = path.split("/")
+    modified_path = "/".join(partes[:-1])
+
+    if not modified_path.endswith("/"):
+        modified_path += "/"
+
+    return modified_path
 
 # Configuración del WebDriver
 service = Service(DRIVER_ROOT)
@@ -370,6 +402,5 @@ try:
     print("Estructura replicada exitosamente")
     """
 
-    
 finally:
     driver.quit()
