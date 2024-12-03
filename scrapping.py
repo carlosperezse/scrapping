@@ -27,9 +27,9 @@ CORREO = 'cipp98@gmail.com'
 CONTRASENIA = 'DSA22359'
 COORDINACION_FOLDER = 'TOPOGRAFÍA'
 FOLIO = 'TPG-01'
-CURRENT_HDD = 'NS1' # Dejar vacío si no aplica
+CURRENT_HDD = 'PRC-10-04' # Dejar vacío si no aplica
 #LOCAL_ROOT = 'C:/Users/ADMIN/Documents/PRC-15'
-LOCAL_ROOT = 'C:/Users/ADMIN/Documents/CARPETABOT'
+LOCAL_ROOT = 'C:/Users/ADMIN/Documents'
 LIST_PATH = 'C:/Users/ADMIN/Desktop/jsonresult_list.json' # Path del archivo con la lista de rutas.
 
 def is_hidden(file_path):
@@ -274,8 +274,8 @@ def save_structure(driver):
         return  # Salir si no se encuentra
     if not navigate_to_element(driver, FOLIO):
         return
-    if not navigate_to_element(driver, CURRENT_HDD):
-        return
+    #if not navigate_to_element(driver, CURRENT_HDD):
+    #    return
     
     #La carpeta raíz donde se trabajará el ingreso de los archivos y directorios.
     url = driver.current_url
