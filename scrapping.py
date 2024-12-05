@@ -4,6 +4,7 @@ import sys
 import json
 from pathlib import Path
 from selenium import webdriver
+from urllib.parse import unquote
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.support.ui import WebDriverWait
@@ -22,15 +23,16 @@ LOCAL_ROOT = 'E:/EXC-01/Alternos'
 
 """
 
-DRIVER_ROOT = 'C:/Users/ADMIN/Desktop/chromedriver-win64/chromedriver.exe'
+DRIVER_ROOT = 'C:/Users/USER/Documents/Libraries/chromedriver-win64/chromedriver.exe'
 CORREO = 'cipp98@gmail.com'
 CONTRASENIA = 'DSA22359'
 COORDINACION_FOLDER = 'TOPOGRAFÍA'
 FOLIO = 'TPG-01'
-CURRENT_HDD = 'PRC-10-04' # Dejar vacío si no aplica
-#LOCAL_ROOT = 'C:/Users/ADMIN/Documents/PRC-15'
-LOCAL_ROOT = 'C:/Users/ADMIN/Documents'
-LIST_PATH = 'C:/Users/ADMIN/Desktop/jsonresult_list.json' # Path del archivo con la lista de rutas.
+# Al usar la lista ya no navegamos a este, esto debido que la lista de rutas siempre tiene la carpeta
+# que representa el número de serie.
+CURRENT_HDD = 'NS1' 
+LOCAL_ROOT = 'D:/TPG-01'
+LIST_PATH = 'C:/Users/USER/Desktop/jsonresult_list.json' # Path del archivo con la lista de rutas.
 
 def is_hidden(file_path):
     """
@@ -141,10 +143,11 @@ def upload_file(driver, file_path):
         if is_hidden(file_path):  # Ignorar archivos ocultos
             print(f"Ignorando archivo oculto: {file_path}")
             return
-
+        """
         exist_file = verify_file(driver, file_path)
         if exist_file:
             return
+        """
 
         print(f"Subiendo archivo: {file_path}")
         file_input = WebDriverWait(driver, 10).until(
@@ -180,7 +183,8 @@ def wait_for_all_uploads(driver, max_wait=18000):
                 print(f"  - {file_name}")
             raise TimeoutError("Se agotó el tiempo de espera. Algunos archivos no se subieron correctamente.")
 
-        time.sleep(5)
+        #time.sleep(5)
+        time.sleep(0.5)
 
 
 def replicate_structure(driver, local_path):
@@ -288,7 +292,7 @@ def save_structure(driver):
         
         print("Archivo cargado correctamente. Contenido:")
         
-        process_list(root_path,list)
+        process_list(root_path,list,driver)
         
         # Continuar con el flujo del programa
         # procesar_lista(lista)
@@ -339,7 +343,7 @@ def load_json_array(ruta_archivo):
     
     return contenido
 
-def process_list(server_root,list):
+def process_list(server_root,list,driver):
     """
     Procesa la lista obtenida del archivo JSON.
     """
@@ -347,7 +351,7 @@ def process_list(server_root,list):
     for path in list:
 
         clean_path = path.replace("\\","/")
-        server_path = server_root + get_parent_root(clean_path) + '/*'
+        server_path = unquote(server_root + get_parent_root(clean_path) + '/*')
         local_path = LOCAL_ROOT+clean_path
         print(f"Elemento: {server_path}")
 
@@ -355,8 +359,12 @@ def process_list(server_root,list):
         path = Path(local_path)
 
         if path.exists():
-            #Navegamos hasta la carpeta padre (independientemente de que exista o no).
-            driver.get(server_path)
+            url = unquote(driver.current_url)
+            #Si nos encontramos en una carpeta/directorio diferente a la del archivo anterior, navegamos a la carpeta.
+            if url != server_path:
+                #Navegamos hasta la carpeta padre (independientemente de que exista o no).
+                driver.get(server_path)
+
             if path.is_file():
                 upload_file(driver, local_path)  # Indica que es un archivo
             elif path.is_dir():
