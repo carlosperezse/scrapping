@@ -23,16 +23,16 @@ LOCAL_ROOT = 'E:/EXC-01/Alternos'
 
 """
 
-DRIVER_ROOT = 'C:/Users/USER/Documents/Libraries/chromedriver-win64/chromedriver.exe'
+DRIVER_ROOT = 'C:/Users/ADMIN/Desktop/chromedriver-win64/chromedriver.exe'
 CORREO = 'cipp98@gmail.com'
 CONTRASENIA = 'DSA22359'
-COORDINACION_FOLDER = 'TOPOGRAFÍA'
-FOLIO = 'TPG-01'
+COORDINACION_FOLDER = 'PROCESAMIENTO'
+FOLIO = 'PRC-07'
 # Al usar la lista ya no navegamos a este, esto debido que la lista de rutas siempre tiene la carpeta
 # que representa el número de serie.
-CURRENT_HDD = 'NS1' 
-LOCAL_ROOT = 'D:/TPG-01'
-LIST_PATH = 'C:/Users/USER/Desktop/jsonresult_list.json' # Path del archivo con la lista de rutas.
+CURRENT_HDD = 'GPKG' 
+LOCAL_ROOT = 'D:/PRC-07'
+LIST_PATH = 'C:/Users/ADMIN/Desktop/jsonresult_list.json' # Path del archivo con la lista de rutas.
 
 def is_hidden(file_path):
     """
