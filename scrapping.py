@@ -2,7 +2,10 @@ import os
 import time
 import sys
 import json
+#pip install requests en la cmd.
+import requests
 from pathlib import Path
+from datetime import datetime
 from selenium import webdriver
 from urllib.parse import unquote
 from selenium.webdriver.common.by import By
@@ -22,17 +25,36 @@ CURRENT_HDD = 'Alternos' # Dejar vacío si no aplica
 LOCAL_ROOT = 'E:/EXC-01/Alternos'
 
 """
+"""
+NOTA IMPORTANTE:
 
-DRIVER_ROOT = 'C:/Users/ADMIN/Desktop/chromedriver-win64/chromedriver.exe'
+Asegúrate de que la lista (LIST_PATH) únicamente contenga los archivos/directorios que faltan
+por subir al servidor. Por optimización no se evalúa si el archivo previamente existe en el servidor.
+La lista resultante del script en Java únicamente trae los archivos restantes.
+
+Siempre puedes "descomentar" este paso para que se evalúe de todas formas.
+
+"""
+# - fija - Es el URL público del árbol del servidor
+TREE_ROOT = "https://repositoriot.inah.gob.mx/arrastrar/arbol.php"
+# - opcional - nombre del árbol en tu PC.
+TREE_FILE_NAME = "full_tree.php"
+# - opcional - Ruta donde se generarán los archivos del script: full_tree, serverFilesJson (Java) y serverJson_list (Java)
+TARGGET_PATH = "C:/Users/USER/Desktop"
+# - contextual - Ruta del chromedriver en tu PC.
+DRIVER_ROOT = 'C:/Users/USER/Documents/Libraries/chromedriver-win64/chromedriver.exe'
+# - contextual - Tus credenciales.
 CORREO = 'cipp98@gmail.com'
+# - contextual - Tus credenciales.
 CONTRASENIA = 'DSA22359'
-COORDINACION_FOLDER = 'PROCESAMIENTO'
-FOLIO = 'PRC-07'
-# Al usar la lista ya no navegamos a este, esto debido que la lista de rutas siempre tiene la carpeta
-# que representa el número de serie.
-CURRENT_HDD = 'GPKG' 
-LOCAL_ROOT = 'D:/PRC-07'
-LIST_PATH = 'C:/Users/ADMIN/Desktop/jsonresult_list.json' # Path del archivo con la lista de rutas.
+
+COORDINACION_FOLDER = 'SEGUIMIENTO DE DATOS DE EXCAVACIÓN'
+FOLIO = 'EXC-06'
+# Al usar la lista ya no navegamos al CURRENT_HDD, esto debido que la lista de rutas siempre tiene la carpeta
+# que representa el número de serie al inicio de cada `ruta relativa`.
+CURRENT_HDD = '7L1929015013' 
+LOCAL_ROOT = 'D:'
+LIST_PATH = 'C:/Users/USER/Desktop/jsonresultexc_list.json' # Path del archivo con la lista de rutas.
 
 def is_hidden(file_path):
     """
@@ -110,7 +132,7 @@ def create_remote_folder(driver, folder_name):
         print(f"Carpeta '{folder_name}' creada exitosamente.")
     except Exception as e:
         print(f"Error al crear la carpeta '{folder_name}': {e}")
-        print("Finalizando el programa debido a un error crítico.")
+        print("Finalizando el programa debido a un error crítico. ", datetime.now())
         sys.exit(1)
 
 
@@ -184,7 +206,7 @@ def wait_for_all_uploads(driver, max_wait=18000):
             raise TimeoutError("Se agotó el tiempo de espera. Algunos archivos no se subieron correctamente.")
 
         #time.sleep(5)
-        time.sleep(0.5)
+        time.sleep(0.7)
 
 
 def replicate_structure(driver, local_path):
@@ -264,6 +286,51 @@ def navigate_to_element(driver, link_text, timeout=10):
     return True
 
 # ---- USO DE LISTA -----
+
+
+def getServerTree():
+    # Obtener el contenido HTML
+    response = requests.get(TREE_ROOT, verify=False)
+
+    if response.status_code == 200:
+        html_content = response.content  # Cambiado a .content para datos binarios
+        print("Contenido HTML obtenido exitosamente")
+        
+        # Nombre del archivo
+        file_path = TARGGET_PATH + "/" + TREE_FILE_NAME
+
+        # Verificar si el archivo ya existe
+        if os.path.exists(file_path):
+            with open(file_path, "rb") as file:
+                existing_content = file.read()
+            
+            # Comparar contenido existente con el nuevo
+            if existing_content == html_content:
+                print("El archivo ya existe y está actualizado.")
+                return True  # Salida inmediata si el archivo es correcto
+            
+            print("El archivo existe, pero será actualizado.")
+        
+        # Crear o actualizar el archivo
+        try:
+            with open(file_path, "wb") as file:
+                file.write(html_content)
+                print("Archivo creado/actualizado correctamente.")
+        except Exception as e:
+            print(f"Error al escribir el archivo: {e}")
+            return False  # Salida inmediata en caso de error al escribir
+        
+        # Verificar si el archivo fue escrito correctamente
+        if os.path.getsize(file_path) == len(html_content):
+            print("El archivo se escribió correctamente con el tamaño esperado.")
+            return True
+        else:
+            print("Advertencia: el tamaño del archivo no coincide con el contenido.")
+            return False  # Error si los tamaños no coinciden
+
+    else:
+        print(f"Error al obtener el contenido: {response.status_code}")
+        return False  # Error en la solicitud HTTP
 
 def save_structure(driver):
     """
@@ -386,12 +453,24 @@ def get_parent_root(path):
     return modified_path
 
 # Configuración del WebDriver
+"""
 service = Service(DRIVER_ROOT)
 driver = webdriver.Chrome(service=service)
+"""
+
+print("** INICIO DE PROCESO")
 
 try:
-    
+    #CREAR EL "Tree del Servidor"
+    if getServerTree():
+        print("se creó el archivo correctamente")
+    else:
+        print("No se generó el archivo")
+
+
+    print("** FIN DE PROCESO **")
     # Inicio de sesión
+    """
     driver.get("https://repositoriot.inah.gob.mx/arrastrar/index.php")
     WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.NAME, "correo")))
     driver.find_element(By.NAME, "correo").send_keys(CORREO)
@@ -399,9 +478,10 @@ try:
     driver.find_element(By.NAME, "iniciar").click()
 
     WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.CLASS_NAME, "file_upload")))
-    print("Inicio de sesión exitoso")
+    print("Inicio de sesión exitoso. ", datetime.now())
+    """
     
-    save_structure(driver)
+    #save_structure(driver)
 
     """
     # Replicar estructura local siempre dentro del FOLIO
@@ -411,4 +491,5 @@ try:
     """
 
 finally:
-    driver.quit()
+    print("fin")
+    #driver.quit()

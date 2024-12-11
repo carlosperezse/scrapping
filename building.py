@@ -1,4 +1,4 @@
-#legacy
+#INICIO_legacy
 
 import os
 import time
@@ -18,7 +18,7 @@ DRIVER_ROOT = 'C:/Users/ADMIN/Desktop/chromedriver-win64/chromedriver.exe'
 CORREO = 'cipp98@gmail.com'
 CONTRASENIA = 'DSA22359'
 
-#legacy
+#FIN_legacy
 
 
 def get_tree(driver):
@@ -28,7 +28,7 @@ def get_tree(driver):
 
 
 
-#legacy
+#INICIO_legacy
 
 # Configuración del WebDriver
 service = Service(DRIVER_ROOT)
@@ -46,7 +46,7 @@ try:
     WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.CLASS_NAME, "file_upload")))
     print("Inicio de sesión exitoso")
 
-#legacy
+#FIN_legacy
 
     get_tree(driver)
 
